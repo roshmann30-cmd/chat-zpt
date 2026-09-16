@@ -67,3 +67,22 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Z is awake on port ${PORT}`);
 });
+app.get("/api/memory/health", async (req, res) => {
+  try {
+    await z.initialize();
+
+    res.json({
+      ok: true,
+      system: "Big Z Memory",
+      database: "connected"
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      ok: false,
+      system: "Big Z Memory",
+      database: "error"
+    });
+  }
+});
