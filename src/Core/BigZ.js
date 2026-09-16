@@ -1,9 +1,13 @@
+import { LittleZ } from "./LittleZ.js";
+import { ModelProvider } from "../providers/ModelProvider.js";
+import { PostgresMemoryStore } from "../memory/PostgresMemoryStore.js";
 import { MemoryStore } from "../memory/MemoryStore.js";
 import { LittleZ } from "./LittleZ.js";
 import { ModelProvider } from "../providers/ModelProvider.js";
 
 export class BigZ {
-  constructor() {this.memoryStore = new MemoryStore();
+  constructor() this.memoryStore = new PostgresMemoryStore();
+this.memoryReady = false;
     this.name = "Big Z";
     this.version = "0.2.0";
 
@@ -122,7 +126,11 @@ export class BigZ {
   }
 
   async synthesize(const recentMemories =
-  this.memoryStore.getRecent(littleZ.userId, 20);) {
+  await this.memoryStore.add(userId, {
+  type: "conversation",
+  input: message,
+  response: response.text
+});
     const systemPrompt = `
 You are Z, a persistent AI companion.
 
@@ -193,4 +201,13 @@ ${JSON.stringify(processes)}
 
     return littleZ.snapshot();
   }
+}
+async async receive(userId, message) {await this.initialize();
+  if (this.memoryReady) return;
+
+  await this.memoryStore.initialize();
+
+  this.memoryReady = true;
+
+  console.log("Big Z memory system initialized.");
 }
