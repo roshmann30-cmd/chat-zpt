@@ -1,8 +1,9 @@
+import { MemoryStore } from "../memory/MemoryStore.js";
 import { LittleZ } from "./LittleZ.js";
 import { ModelProvider } from "../providers/ModelProvider.js";
 
 export class BigZ {
-  constructor() {
+  constructor() {this.memoryStore = new MemoryStore();
     this.name = "Big Z";
     this.version = "0.2.0";
 
@@ -63,12 +64,11 @@ export class BigZ {
       littleZ
     );
 
-    littleZ.remember({
-      type: "conversation",
-      input: message,
-      response: response.text,
-      timestamp: new Date().toISOString()
-    });
+    this.memoryStore.add(userId, {
+  type: "conversation",
+  input: message,
+  response: response.text
+});
 
     return {
       response: response.text,
@@ -121,7 +121,8 @@ export class BigZ {
     };
   }
 
-  async synthesize(message, processes, littleZ) {
+  async synthesize(const recentMemories =
+  this.memoryStore.getRecent(littleZ.userId, 20);) {
     const systemPrompt = `
 You are Z, a persistent AI companion.
 
@@ -141,8 +142,14 @@ Important rules:
 - Be helpful, curious, creative, and honest.
 
 Current state:
+Current state:
 ${JSON.stringify(littleZ.snapshot())}
 
+Recent memories:
+${JSON.stringify(recentMemories)}
+
+Internal process results:
+${JSON.stringify(processes)}
 Internal process results:
 ${JSON.stringify(processes)}
 `;
