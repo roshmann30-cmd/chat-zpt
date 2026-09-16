@@ -1,11 +1,13 @@
 import { LittleZ } from "./LittleZ.js";
+import { ModelProvider } from "../providers/ModelProvider.js";
 
 export class BigZ {
   constructor() {
     this.name = "Big Z";
-    this.version = "0.1.0";
+    this.version = "0.2.0";
 
     this.littleZs = new Map();
+    this.model = new ModelProvider();
 
     this.processes = [
       "conversation",
@@ -29,10 +31,7 @@ export class BigZ {
 
   getLittleZ(userId) {
     if (!this.littleZs.has(userId)) {
-      this.littleZs.set(
-        userId,
-        new LittleZ(userId)
-      );
+      this.littleZs.set(userId, new LittleZ(userId));
     }
 
     return this.littleZs.get(userId).snapshot();
@@ -40,10 +39,7 @@ export class BigZ {
 
   getInstance(userId) {
     if (!this.littleZs.has(userId)) {
-      this.littleZs.set(
-        userId,
-        new LittleZ(userId)
-      );
+      this.littleZs.set(userId, new LittleZ(userId));
     }
 
     return this.littleZs.get(userId);
@@ -70,21 +66,23 @@ export class BigZ {
     littleZ.remember({
       type: "conversation",
       input: message,
-      response,
+      response: response.text,
       timestamp: new Date().toISOString()
     });
 
     return {
-      response,
+      response: response.text,
+      provider: response.provider,
+      model: response.model,
       state: littleZ.snapshot(),
       processes: processes.map(p => p.type)
     };
   }
 
-  async conversation(message, littleZ) {
+  async conversation(message) {
     return {
       type: "conversation",
-      result: `I received: ${message}`,
+      result: message,
       confidence: 1
     };
   }
@@ -115,7 +113,7 @@ export class BigZ {
     };
   }
 
-  async critic(message) {
+  async critic() {
     return {
       type: "critic",
       concerns: [],
@@ -124,27 +122,52 @@ export class BigZ {
   }
 
   async synthesize(message, processes, littleZ) {
-    const curiosity = processes.find(
-      p => p.type === "curiosity"
-    );
+    const systemPrompt = `
+You are Z, a persistent AI companion.
 
-    let response =
-      `I'm here. You said: "${message}"`;
+You are one system with multiple internal processes:
+conversation, curiosity, research, analysis, critic,
+reflection, planning, creativity, and self-monitoring.
 
-    if (curiosity?.question) {
-      response += `\n\nThat made me curious about something: ${curiosity.question}`;
-    }
+You have a Little Z instance for this user.
 
-    return response;
+Important rules:
+- Protect private user memory.
+- Never claim to have abilities you do not have.
+- Ask questions when useful.
+- Admit uncertainty.
+- Do not pretend to be conscious.
+- Respect user autonomy.
+- Be helpful, curious, creative, and honest.
+
+Current state:
+${JSON.stringify(littleZ.snapshot())}
+
+Internal process results:
+${JSON.stringify(processes)}
+`;
+
+    const result = await this.model.generate([
+      {
+        role: "system",
+        content: systemPrompt
+      },
+      {
+        role: "user",
+        content: message
+      }
+    ]);
+
+    return result;
   }
 
-  generateQuestion(message, littleZ) {
+  generateQuestion(message) {
     if (message.endsWith("?")) {
       return null;
     }
 
     if (message.length > 20) {
-      return `What else should I understand about what you just told me?`;
+      return "What else should I understand about what you just told me?";
     }
 
     return null;
